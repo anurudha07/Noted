@@ -244,8 +244,8 @@ export default function HomePage() {
                 <input
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="  S E A R C H  ..."
-                  className="w-full px-8 py-10 text-xl bg-transparent border border-gray-700  placeholder-gray-400 focus:outline-none focus:border-gray-500"
+                  placeholder="|    S E A R C H  ..."
+                  className="w-full px-8 py-10 text-l bg-transparent border border-gray-700  placeholder-gray-400 focus:outline-none focus:border-gray-500"
                 />
               </div>
             </header>
