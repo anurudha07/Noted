@@ -55,7 +55,7 @@ cd backend
 npm i
 # add .env from the sample below
 npm run build
-npm run dev        # start dev server (ts-node / nodemon)
+npm start       # start dev server (ts-node / nodemon)
 
 
 
