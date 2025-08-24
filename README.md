@@ -75,7 +75,7 @@ cd frontend
 npm i
 # create .env from the sample below
 npm run build
-npm run dev        # Next dev server (http://localhost:3000)
+npm run dev       # Next dev server (http://localhost:3000)
 
 
 
@@ -95,24 +95,21 @@ Next frontned ----------->
 
 
 Build command: npm install && npm run build
-
 Start command: npm start
-
 NEXT_PUBLIC_API_URL:https:/<your_api_url>.com     --- the deployed frontend url
+
+
+Start command: npm start (use render or vercel for easy frontend hosting)
+Build command: npm i && npm run build
 
 
 
 Node backend ----------->
 
 MONGODB_URI=<your_mongo_uri>
-
 JWT_SECRET=<your_jwt_secret>
-
 PORT=<your_port> || 5000
-
 FRONTEND_ORIGIN=https:/<your_client_url>.com      --- the deployed frontend url
-
-
 
 
 Start command: npm start (use render or vercel for easy frontend hosting)
