@@ -18,12 +18,14 @@ Features
 📱 Responsive — consistent sidebar on mobile & desktop
 🧭 Stay focused increasing productivity with minimalistic UI
 
+
 Tech Stack
 
 Frontend: Next.js + TypeScript + Tailwind CSS
 Backend: Node.js + TypeScript + MongoDB 
 Auth: JWT
 Deploy: Render + static host
+
 
 Usage
 
@@ -37,11 +39,11 @@ Usage
 
 - Works across all devices
 
+
 Getting started
 🛠️ Local installation
 
 download the zip file --
-
 cd noted
 
 
@@ -89,31 +91,32 @@ NEXT_PUBLIC_API_URL=http://localhost:4000
 Production / Deploy
 Deploy backend (Render / any Node host)
 
+
+Next frontned ----------->
+
+
 Build command: npm install && npm run build
 
 Start command: npm start
 
-Set environment variables on the host:
+NEXT_PUBLIC_API_URL:https:/<your_api_url>.com
 
-MONGODB_URI
 
-JWT_SECRET
 
-PORT (optional)
+Node frontned ----------->
 
-Deploy frontend (Vercel recommended for Next.js; Render is fine)
+FRONTEND_ORIGIN=https:/<your_client_url>.com
 
-If using Vercel: simply link repo, set NEXT_PUBLIC_API_URL to your API URL.
+MONGODB_URI=<your_mongo_uri>
 
-If using Render:
+JWT_SECRET=<your_jwt_secret>
 
-Build command: npm ci && npm run build
+PORT=<your_port> || 5000
+
 
 Start command: npm start (or use Vercel for easiest Next.js hosting)
+Build command: npm i && npm run build
 
-Environment variables:
-
-NEXT_PUBLIC_API_URL=https://your-backend.example
 
 
 
