@@ -1,6 +1,6 @@
 Noted
 
-A personal, minimal note app built with Next.js + TypeScript + Tailwind (frontend) and Node + TypeScript + MongoDB (backend). Fast, user friendly, and mobile-first.
+A personal, minimal note takign app built with Next.js + TypeScript + Tailwind (frontend) and Node + TypeScript + MongoDB (backend). Fast, user friendly, and mobile-first.
 
 ```
 About
