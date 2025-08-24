@@ -5,7 +5,7 @@ A personal, minimal note app built with Next.js + TypeScript + Tailwind (fronten
 ```
 About
 
-Noted is a lightweight, responsive, secure note-taking app designed for quick capture and focused working hours.
+Noted is a lightweight, responsive, secure note-taking app designed for quick capture for focused work.
 
 
 Features
