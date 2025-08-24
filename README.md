@@ -64,8 +64,7 @@ backend/.env
 PORT=4000
 MONGODB_URI=your_mongodb_uri_here
 JWT_SECRET=your_jwt_secret_here
-# optional
-NODE_ENV=development
+FRONTEND_ORIGIN=http://localhost:3000
 
 
 -------------------------------------------------------------------
@@ -99,13 +98,11 @@ Build command: npm install && npm run build
 
 Start command: npm start
 
-NEXT_PUBLIC_API_URL:https:/<your_api_url>.com
+NEXT_PUBLIC_API_URL:https:/<your_api_url>.com     --- the deployed frontend url
 
 
 
-Node frontned ----------->
-
-FRONTEND_ORIGIN=https:/<your_client_url>.com
+Node backend ----------->
 
 MONGODB_URI=<your_mongo_uri>
 
@@ -113,8 +110,12 @@ JWT_SECRET=<your_jwt_secret>
 
 PORT=<your_port> || 5000
 
+FRONTEND_ORIGIN=https:/<your_client_url>.com      --- the deployed frontend url
 
-Start command: npm start (or use Vercel for easiest Next.js hosting)
+
+
+
+Start command: npm start (use render or vercel for easy frontend hosting)
 Build command: npm i && npm run build
 
 
