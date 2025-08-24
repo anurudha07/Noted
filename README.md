@@ -50,7 +50,7 @@ cd noted
 -------------------------------------------------------------------
 
 
-Backend --->
+Backend (Node) --->
 cd backend
 npm i
 # add .env from the sample below
@@ -70,7 +70,7 @@ FRONTEND_ORIGIN=http://localhost:3000
 -------------------------------------------------------------------
 
 
-Frontend (Next.js)
+Frontend (Next.js) --->
 cd frontend
 npm i
 # create .env from the sample below
