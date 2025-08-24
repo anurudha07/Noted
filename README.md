@@ -12,7 +12,7 @@ Features
 
 🔐 JWT Auth (Signup / Login)
 📝 Quick add (single box — first line = title, rest = content)
-🗄️ Notes grid with responsive cards (dark UI, small text)
+🗄️ Notes grid with responsive cards (dark UI)
 ✏️ Edit with ease
 🔎 Search notes 
 📱 Responsive — consistent sidebar on mobile & desktop
