@@ -14,7 +14,6 @@ Features
 📝 Quick add (single box — first line = title, rest = content)
 🗄️ Notes grid with responsive cards (dark UI, small text)
 ✏️ Edit with ease
- ... ... ... ... ...
 🔎 Search notes 
 📱 Responsive — consistent sidebar on mobile & desktop
 🧭 Stay focused increasing productivity with minimalistic UI
