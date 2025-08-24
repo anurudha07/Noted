@@ -16,8 +16,13 @@ export default function LoginPage() {
             const res = await API.post('/api/auth/login', { email, password })
             saveToken(res.data.token)
             router.replace('/')
-        } catch (error: any) {
-            setError(error?.response?.data?.message || 'Error')
+        } catch (err: unknown) {
+            if (err && typeof err === 'object' && 'response' in err) {
+                const axiosErr = err as { response?: { data?: { message?: string } } };
+                setError(axiosErr.response?.data?.message || 'Error');
+            } else {
+                setError('Error');
+            }
         }
     }
 
