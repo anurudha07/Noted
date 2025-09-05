@@ -1,14 +1,18 @@
 Noted
 
+---
+
 A personal, minimal note takign app built with Next.js + TypeScript + Tailwind (frontend) and Node + TypeScript + MongoDB (backend). Fast, user friendly, and mobile-first.
 
+
 ```
-About
 
-Noted is a lightweight, responsive, secure note-taking app designed for quick capture for focused work.
+-------- # Note:  MVP hosted on Render free tier, which may take up to 50 seconds 
+          to load initially due to server cold start. --------
 
 
-Features
+
+✨ Features -----
 
 🔐 JWT Auth (Signup / Login)
 📝 Quick add (single box — first line = title, rest = content)
