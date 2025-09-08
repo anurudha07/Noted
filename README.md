@@ -179,5 +179,10 @@ Build command: npm i && npm run build
 
 
 
+Thanks if you stayed till here
+
+Happy Hacking!!
+
 
 ```
+
