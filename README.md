@@ -30,7 +30,7 @@ Noted
 
        Edit, update, delete with ease
 
-       Responsive — consistent UI across all devices
+       Responsive — Easy drag-drop notes across all devices
 
 
 
@@ -182,5 +182,6 @@ Happy Hacking!!
 
 
 ```
+
 
 
