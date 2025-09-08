@@ -133,39 +133,36 @@ NEXT_PUBLIC_API_URL:https:/<your_api_url>.com     --- the deployed frontend url
 
 Node backend ----------->
 
+
 # Server
 PORT=4000
-FRONTEND_ORIGIN=http://localhost:3000
-BACKEND_ORIGIN=http://localhost:4000
+FRONTEND_ORIGIN=https://noted-frontend.example.com
+BACKEND_ORIGIN=https://noted-backend.example.com
 
-# MongoDB
+# MongoDB (Cloud Atlas)
 MONGO_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/Noted?retryWrites=true&w=majority
 
 # JWT & Session
-JWT_SECRET=<your_jwt_secret>
-SESSION_SECRET=<your_session_secret>
+JWT_SECRET=${{ secrets.JWT_SECRET }}
+SESSION_SECRET=${{ secrets.SESSION_SECRET }}
 
-# Redis
-REDIS_URL=redis://127.0.0.1:6379
-
-# SMTP (Gmail)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=<your_email@gmail.com>
-SMTP_PASS=<your_app_password>
-FROM_EMAIL="Noted App <your_email@gmail.com>"
+   .
+   .
+   .
+   .
 
 # Google OAuth
-GOOGLE_CLIENT_ID=<your_google_client_id>
-GOOGLE_CLIENT_SECRET=<your_google_client_secret>
+GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+
 
 
 
 Start command: npm start (use render or vercel for easy backend hosting)
 Build command: npm i && npm run build
 
-< note: use the hosted backend and frontend value for the environmentvariable setup for frontend origin, backend origin
-  redis and the deployed uri for google auth add the javascript origin and redirect uris  >
+        < note: use the hosted backend and frontend value for the environmentvariable setup for frontend origin, backend origin
+              redis and the deployed uri for google auth add the javascript origin and redirect uris  >
 
 
 
@@ -185,4 +182,5 @@ Happy Hacking!!
 
 
 ```
+
 
