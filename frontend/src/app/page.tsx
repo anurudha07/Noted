@@ -51,12 +51,19 @@ function getNoteTimestamp(n: NoteType) {
 
 function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: transition || undefined,
     zIndex: isDragging ? 9999 : undefined,
-    touchAction: 'none',
+    // allow vertical pan (scroll) by default; only block touch-action while actively dragging
+    touchAction: isDragging ? 'none' : 'pan-y',
+    WebkitTapHighlightColor: 'transparent',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+    WebkitTouchCallout: 'none',
   };
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       {children}
@@ -149,7 +156,7 @@ export default function HomePage() {
       }
     }
     document.addEventListener('mousedown', handlePointerOutside);
-    document.addEventListener('touchstart', handlePointerOutside, { passive: true });
+    document.addEventListener('touchstart', handlePointerOutside, { passive: true } as AddEventListenerOptions);
     return () => { document.removeEventListener('mousedown', handlePointerOutside); document.removeEventListener('touchstart', handlePointerOutside as EventListener); };
   }, [quickText, createQuickNote]);
 
@@ -186,31 +193,33 @@ export default function HomePage() {
   // dnd-kit setup
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    // require a 2 second hold on touch devices before drag starts
+    useSensor(TouchSensor, { activationConstraint: { delay: 2000, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const onDragEnd = useCallback((event: DragEndEvent) => {
-  const { active, over } = event;
-  if (!over || active.id === over.id) return;
-  setNotes(prev => {
-    const oldIndex = prev.findIndex(p => p._id === active.id);
-    const newIndex = prev.findIndex(p => p._id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return prev;
-    const next = arrayMove(prev, oldIndex, newIndex);
-    // persist order to server and local fallback so reload keeps placement
-    try { localStorage.setItem('notesOrder', JSON.stringify(next.map(n => n._id))); } catch (e) {}
-    API.post('/api/notes/reorder', { order: next.map(n => n._id) }).catch(() => {});
-    return next;
-  });
-}, []);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setNotes(prev => {
+      const oldIndex = prev.findIndex(p => p._id === active.id);
+      const newIndex = prev.findIndex(p => p._id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      const next = arrayMove(prev, oldIndex, newIndex);
+      // persist order to server and local fallback so reload keeps placement
+      try { localStorage.setItem('notesOrder', JSON.stringify(next.map(n => n._id))); } catch (e) {}
+      API.post('/api/notes/reorder', { order: next.map(n => n._id) }).catch(() => {});
+      return next;
+    });
+  }, []);
 
-
+  // sidebar list sorted by timestamp (used for both desktop and mobile views)
   const sidebarNotes = notes.slice().sort((a,b) => getNoteTimestamp(b) - getNoteTimestamp(a));
 
   return (
     <div className="min-h-screen bg-black text-gray-200">
-      <style jsx global>{`@media (min-width: 768px){
+      <style jsx global>{`
+@media (min-width: 768px){
   /* narrow, darker scrollbar for desktop */
   .custom-scrollbar::-webkit-scrollbar{width:6px}
   .custom-scrollbar::-webkit-scrollbar-track{background:transparent}
@@ -231,7 +240,15 @@ export default function HomePage() {
   .main-scroll{scrollbar-width:thin;scrollbar-color:#0f0f10 transparent}
   body{scrollbar-width:thin;scrollbar-color:#0f0f10 transparent}
 }
-`}</style>
+
+/* mobile / touch devices: prefer natural vertical pan-y scrolling unless actively dragging */
+@media (pointer: coarse) {
+  .main-scroll, .custom-scrollbar, .panel-transparent {
+    touch-action: pan-y;
+    -ms-touch-action: pan-y;
+  }
+}
+      `}</style>
       <style jsx>{`.note-card-wrapper{min-height:56px}`}</style>
       <div className="md:flex">
         <aside className="hidden md:flex flex-col w-72 fixed left-0 top-0 bottom-0 border-r border-gray-800 bg-black overflow-y-auto custom-scrollbar">
@@ -266,14 +283,21 @@ export default function HomePage() {
               <div className="p-4 border-b border-gray-800"><div className="text-gray-400 text-xl uppercase tracking-wide mb-2">All Notes</div><button onClick={() => fetchNotes()} className="w-full py-4 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200">Refresh</button></div>
               <nav className="mt-3">
                 {notes.length === 0 && <div className="text-xs text-gray-500 p-4 text-center">No notes</div>}
-                <div className="flex flex-col gap-2">
-                  {notes.map(n => (
-                    <button key={n._id} onClick={() => openEdit(n)} className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 hover:black transition border border-transparent hover:border-gray-700" title={String(n.title || (n.content ? String(n.content).slice(0,120) : ''))}>
-                      <div className="font-semibold text-sm truncate w-full">{n.title || (n.content ? String(n.content).split('\n')[0].slice(0,40) : 'Untitled')}</div>
-                      <div className="text-[11px] text-gray-400 line-clamp-2 w-full">{String(n.content || '').slice(0,80)}</div>
-                    </button>
-                  ))}
-                </div>
+                {/* use the same sorted sidebarNotes here so mobile shows most-recent-first */}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                  <SortableContext items={sidebarNotes.map(n=>n._id)} strategy={verticalListSortingStrategy}>
+                    <div className="flex flex-col gap-2">
+                      {sidebarNotes.map(n => (
+                        <SortableItem key={n._id} id={n._id}>
+                          <button onClick={() => openEdit(n)} className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 hover:black transition border border-transparent hover:border-gray-700" title={String(n.title || (n.content ? String(n.content).slice(0,120) : ''))}>
+                            <div className="font-semibold text-sm truncate w-full">{n.title || (n.content ? String(n.content).split('\n')[0].slice(0,40) : 'Untitled')}</div>
+                            <div className="text-[11px] text-gray-400 line-clamp-2 w-full">{String(n.content || '').slice(0,80)}</div>
+                          </button>
+                        </SortableItem>
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               </nav>
             </div>
           </div>
