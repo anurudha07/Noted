@@ -19,7 +19,37 @@ type NoteType = {
   title?: string;
   content?: string;
   reminder?: Reminder;
+  [k: string]: any;
 };
+
+function getNoteTimestamp(n: NoteType) {
+
+  const tryFields = ['updatedAt', 'updated_at', 'modifiedAt', 'modified_at', 'editedAt', 'edited_at', 'createdAt', 'created_at'];
+  for (const f of tryFields) {
+    const v = n[f];
+    if (v) {
+      const t = typeof v === 'number' ? v : Date.parse(v);
+      if (!Number.isNaN(t)) return t;
+      try {
+        const d = new Date(v);
+        if (!Number.isNaN(d.getTime())) return d.getTime();
+      } catch (e) {
+      }
+    }
+  }
+
+  // fallback — 
+  try {
+    if (typeof n._id === 'string' && n._id.length >= 8) {
+      const seconds = parseInt(n._id.substring(0, 8), 16);
+      if (!Number.isNaN(seconds)) return seconds * 1000;
+    }
+  } catch (e) {
+
+  }
+
+  return 0; // unknown
+}
 
 export default function HomePage() {
   const [notes, setNotes] = useState<NoteType[]>([]);
@@ -34,14 +64,14 @@ export default function HomePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
-  if (!reminderMessage) return;
+    if (!reminderMessage) return;
 
-  const timer = setTimeout(() => {
-    setReminderMessage('');
-  }, 10000); // 5 seconds
+    const timer = setTimeout(() => {
+      setReminderMessage('');
+    }, 10000); // 10 seconds
 
-  return () => clearTimeout(timer); // cleanup if message changes before timeout
-}, [reminderMessage]);
+    return () => clearTimeout(timer);
+  }, [reminderMessage]);
 
   const router = useRouter();
 
@@ -49,12 +79,14 @@ export default function HomePage() {
   const quickRef = useRef<HTMLDivElement | null>(null);
   const creatingRef = useRef(false);
 
-  // fetchNotes as useCallback so it can be used safely inside useEffect deps
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     try {
       const res: AxiosResponse<NoteType[]> = await API.get('/api/notes');
-      setNotes(res.data);
+      const sorted = (res.data || []).slice().sort((a, b) => {
+        return getNoteTimestamp(b) - getNoteTimestamp(a);
+      });
+      setNotes(sorted);
     } catch (err) {
       console.error(err);
     } finally {
@@ -83,6 +115,7 @@ export default function HomePage() {
     const { title, content } = parseQuickText(quickText);
     try {
       const res = await API.post<NoteType>('/api/notes', { title, content });
+      // prepend new note 
       setNotes(prev => [res.data, ...prev]);
       setQuickText('');
       setEditingNote(res.data);
@@ -102,7 +135,7 @@ export default function HomePage() {
 
   // outside click -> create quick note if needed
   useEffect(() => {
-    function handleMouseDown(e: MouseEvent) {
+    function handlePointerOutside(e: Event) {
       const target = e.target as Node;
       if (!quickRef.current) return;
       if (quickRef.current.contains(target)) return;
@@ -114,8 +147,13 @@ export default function HomePage() {
       }
     }
 
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousedown', handlePointerOutside);
+    document.addEventListener('touchstart', handlePointerOutside, { passive: true });
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerOutside);
+      document.removeEventListener('touchstart', handlePointerOutside as EventListener);
+    };
   }, [quickText, createQuickNote]);
 
   const filtered = notes.filter(n => {
@@ -173,7 +211,7 @@ export default function HomePage() {
         <aside className="hidden md:flex flex-col w-72 fixed left-0 top-0 bottom-0 border-r border-gray-800 bg-black overflow-y-auto custom-scrollbar">
           <div className="p-4 border-b border-gray-800">
             <div className="text-gray-400 text-xl uppercase tracking-wide mb-2">All Notes</div>
-            <button onClick={fetchNotes} className="w-full py-4 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200">Refresh</button>
+            <button onClick={() => fetchNotes()} className="w-full py-4 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200">Refresh</button>
           </div>
 
           <nav className="flex-1 p-2 overflow-y-auto">
@@ -198,15 +236,37 @@ export default function HomePage() {
 
         {mobileDrawerOpen && (
           <div className="md:hidden fixed inset-0 z-40">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileDrawerOpen(false)} />
-            <div className="absolute left-0 top-0 bottom-0 w-80 p-4 bg-black overflow-y-auto border-r border-gray-800">
+            {/* overlay - slightly lower z so drawer is clickable */}
+            <div className="absolute inset-0 bg-black/40 z-30" onClick={() => setMobileDrawerOpen(false)} />
+            {/* drawer - higher z */}
+            <div className="absolute left-0 top-0 bottom-0 w-80 p-4 bg-black overflow-y-auto border-r border-gray-800 z-40">
               <div className="flex items-center justify-end mb-4">
                 <button onClick={() => setMobileDrawerOpen(false)} className="px-2 py-1 text-xs rounded-sm panel-transparent">Close</button>
               </div>
               <div className="p-4 border-b border-gray-800">
                 <div className="text-gray-400 text-xl uppercase tracking-wide mb-2">All Notes</div>
-                <button onClick={fetchNotes} className="w-full py-4 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200">Refresh</button>
+                <button onClick={() => fetchNotes()} className="w-full py-4 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200">Refresh</button>
               </div>
+
+              {/* Mobile notes list (same as desktop aside) */}
+              <nav className="mt-3">
+                {notes.length === 0 && <div className="text-xs text-gray-500 p-4 text-center">No notes</div>}
+                <div className="flex flex-col gap-2">
+                  {notes.map(n => (
+                    <button
+                      key={n._id}
+                      onClick={() => openEdit(n)}
+                      className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 hover:black transition border border-transparent hover:border-gray-700"
+                      title={n.title || (n.content ? n.content.slice(0, 120) : '')}
+                    >
+                      <div className="font-semibold text-sm truncate w-full">
+                        {n.title || (n.content ? n.content.split('\n')[0].slice(0, 40) : 'Untitled')}
+                      </div>
+                      <div className="text-[11px] text-gray-400 line-clamp-2 w-full">{(n.content || '').slice(0, 80)}</div>
+                    </button>
+                  ))}
+                </div>
+              </nav>
             </div>
           </div>
         )}
