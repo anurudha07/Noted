@@ -122,12 +122,6 @@ export default function DateTimeDialog({
   }, [year, monthIndex]);
 
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const _hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
-  const _minutes = useMemo(() => {
-    const arr: number[] = [];
-    for (let m = 0; m < 60; m += minuteStep) arr.push(m);
-    return arr;
-  }, [minuteStep]);
 
   function prevMonth() {
     if (monthIndex === 0) {
