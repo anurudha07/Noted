@@ -3,11 +3,11 @@ const noteSchema = new Schema({
     user: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: true,
     },
     title: {
         type: String,
-        default: ''
+        default: '',
     },
     content: {
         type: String,
@@ -15,11 +15,16 @@ const noteSchema = new Schema({
     },
     color: {
         type: String,
-        default: '#111827'
+        default: '#111827',
     },
     pinned: {
         type: Boolean,
-        deault: false
+        default: false,
+    },
+    reminder: {
+        at: { type: Date },
+        sent: { type: Boolean, default: false },
+        jobId: { type: String },
     },
 }, { timestamps: true });
 export const Note = model('Note', noteSchema);

@@ -4,18 +4,21 @@ import { saveToken } from "@/lib/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 
 export default function LoginPage() {
-    const router = useRouter()
-    const [email, setEmail] = useState('')
-    const [error, setError] = useState('')
-    const [password, setPassword] = useState('')
+    const router = useRouter();
+    const [email, setEmail] = useState('');
+    const [error, setError] = useState('');
+    const [password, setPassword] = useState('');
+
+    const googleUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`; 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await API.post('/api/auth/login', { email, password })
-            saveToken(res.data.token)
-            router.replace('/')
+            const res = await API.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, { email, password });
+            saveToken(res.data.token);
+            router.replace('/');
         } catch (err: unknown) {
             if (err && typeof err === 'object' && 'response' in err) {
                 const axiosErr = err as { response?: { data?: { message?: string } } };
@@ -56,12 +59,36 @@ export default function LoginPage() {
                         className="text-s text-gray-400 hover:underline"
                         href="/register"
                     >
-                        Need an account?Sign up
+                        Need an account? Sign up
                     </Link>
                 </div>
+
                 {error && <div className="mt-2 text-red-400 text-xs">{error}</div>}
+
+                {/* Divider */}
+                <div className="my-6 flex items-center gap-2 text-gray-400 text-xs">
+                    <hr className="flex-1 border-gray-700" />
+                    <span>OR</span>
+                    <hr className="flex-1 border-gray-700" />
+                </div>
+
+                {/* Google Sign-in */}
+                <a
+                    href={googleUrl}
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-600 text-white rounded bg-transparent hover:bg-gray-800/40 transition-colors"
+                    aria-label="Google"
+                >
+                    <Image
+                        src="/Google_logo.png"
+                        alt="Google"
+                        width={18}
+                        height={18}
+                    />
+                    <span className="leading-none font-medium">Google</span>
+                </a>
+
             </form>
         </div>
-
-    )
+    );
 }
