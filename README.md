@@ -11,7 +11,6 @@ Noted
 ```
 
 
-
          -------- # Note:  MVP hosted on Render free tier, which may take up to 50 seconds 
                                   to load initially due to server cold start. --------
 
@@ -72,10 +71,31 @@ npm start       # start dev server (ts-node / nodemon)
 
 backend/.env
 
+# Server
 PORT=4000
-MONGODB_URI=your_mongodb_uri_here
-JWT_SECRET=your_jwt_secret_here
 FRONTEND_ORIGIN=http://localhost:3000
+BACKEND_ORIGIN=http://localhost:4000
+
+# MongoDB
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/Noted?retryWrites=true&w=majority
+
+# JWT & Session
+JWT_SECRET=<your_jwt_secret>
+SESSION_SECRET=<your_session_secret>
+
+# Redis
+REDIS_URL=redis://127.0.0.1:6379
+
+# SMTP (Gmail)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=<your_email@gmail.com>
+SMTP_PASS=<your_app_password>
+FROM_EMAIL="Noted App <your_email@gmail.com>"
+
+# Google OAuth
+GOOGLE_CLIENT_ID=<your_google_client_id>
+GOOGLE_CLIENT_SECRET=<your_google_client_secret>
 
 
 -------------------------------------------------------------------
@@ -98,33 +118,54 @@ NEXT_PUBLIC_API_URL=http://localhost:4000
 -------------------------------------------------------------------
 
 
-Production / Deploy
-Deploy backend (Render / any Node host)
+🚀  Production ..
 
 
 Next frontned ----------->
 
 
-Build command: npm install && npm run build
+Build command: npm i && npm run build
 Start command: npm start
 NEXT_PUBLIC_API_URL:https:/<your_api_url>.com     --- the deployed frontend url
 
-
-Start command: npm start (use render or vercel for easy frontend hosting)
-Build command: npm i && npm run build
 
 
 
 Node backend ----------->
 
-MONGODB_URI=<your_mongo_uri>
+# Server
+PORT=4000
+FRONTEND_ORIGIN=http://localhost:3000
+BACKEND_ORIGIN=http://localhost:4000
+
+# MongoDB
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/Noted?retryWrites=true&w=majority
+
+# JWT & Session
 JWT_SECRET=<your_jwt_secret>
-PORT=<your_port> || 5000
-FRONTEND_ORIGIN=https:/<your_client_url>.com      --- the deployed frontend url
+SESSION_SECRET=<your_session_secret>
+
+# Redis
+REDIS_URL=redis://127.0.0.1:6379
+
+# SMTP (Gmail)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=<your_email@gmail.com>
+SMTP_PASS=<your_app_password>
+FROM_EMAIL="Noted App <your_email@gmail.com>"
+
+# Google OAuth
+GOOGLE_CLIENT_ID=<your_google_client_id>
+GOOGLE_CLIENT_SECRET=<your_google_client_secret>
 
 
-Start command: npm start (use render or vercel for easy frontend hosting)
+
+Start command: npm start (use render or vercel for easy backend hosting)
 Build command: npm i && npm run build
+
+< note: use the hosted backend and frontend value for the environmentvariable setup for frontend origin, backend origin
+  redis and the deployed uri for google auth add the javascript origin and redirect uris  >
 
 
 
@@ -132,13 +173,11 @@ Build command: npm i && npm run build
 
    --  by Anurudha Sarkar  --
 
-
-
-```
-
        Email: anurudhs567@gmail.com
   
        Portfolio: https://portfolio-kxhf.onrender.com
 
 
-tell me the difficulty level of the app and is this suitable for freshers or ecperienced. And tellme complete use flow of the app
+
+
+```
