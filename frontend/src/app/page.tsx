@@ -206,7 +206,9 @@ export default function HomePage() {
   // dnd-kit sensors setup (we create sensor descriptors unconditionally,
   // but we pass only the appropriate sensors into useSensors based on runtime touch detection)
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 6 } });
-  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 2000, tolerance: 5 } });
+
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } });
+
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
 
   // Choose which sensors to activate depending on device type.
