@@ -35,14 +35,14 @@ export default function LoginPage() {
                 <h1 className="text-2xl text-left mb-14 ">Login</h1>
 
                 <input
-                    className="w-full p-3 text-sm bg-transparent border border-white"
+                    className="w-full p-3 text-sm bg-transparent border border-white focus:border-gray-400 focus:ring-0 outline-none"
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                 />
 
                 <input
-                    className="w-full p-3 text-sm bg-transparent border border-white"
+                    className="w-full p-3 text-sm bg-transparent border border-white focus:border-gray-400 focus:ring-0 outline-none"
                     placeholder="Password"
                     type="password"
                     value={password}
