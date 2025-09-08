@@ -1,8 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config();
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { User } from "../models/User.js";
-import dotenv from "dotenv";
-dotenv.config();
 const backendOrigin = process.env.BACKEND_ORIGIN ?? "http://localhost:4000";
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -10,16 +10,34 @@ passport.use(new GoogleStrategy({
     callbackURL: `${backendOrigin}/api/auth/google/callback`,
 }, async (_accessToken, _refreshToken, profile, done) => {
     try {
-        console.log("GoogleStrategy: profile.id=", profile.id);
-        let user = await User.findOne({ googleId: profile.id });
-        if (!user) {
-            user = await User.create({
-                googleId: profile.id,
-                email: profile.emails?.[0]?.value || "",
-                name: profile.displayName,
-            });
+        const email = profile.emails?.[0]?.value?.toLowerCase() ?? "";
+        // Find by googleId OR by the email address returned by Google
+        let user = await User.findOne({
+            $or: [
+                { googleId: profile.id },
+                ...(email ? [{ email }] : []),
+            ],
+        });
+        if (user) {
+            // If user exists but doesn't have googleId, link it
+            if (!user.googleId) {
+                const emailVerified = profile.emails?.[0]?.verified;
+                if (emailVerified !== true)
+                    return done(new Error('Google email not verified'), undefined);
+                user.googleId = profile.id;
+                if (!user.name && profile.displayName)
+                    user.name = profile.displayName;
+                await user.save();
+            }
+            return done(null, user);
         }
-        return done(null, user);
+        // no user found -> create a fresh one
+        const newUser = await User.create({
+            googleId: profile.id,
+            email,
+            name: profile.displayName,
+        });
+        return done(null, newUser);
     }
     catch (err) {
         return done(err, undefined);

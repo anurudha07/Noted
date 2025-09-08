@@ -2,9 +2,8 @@ import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { sendReminderEmail } from '../utils/mailer.js';
 import { Note } from '../models/Note.js';
-// Redis URL from env
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-// Create Redis connection with maxRetriesPerRequest null
+//  Redis connection with maxRetriesPerRequest null
 const connection = new Redis(redisUrl, {
     maxRetriesPerRequest: null
 });
@@ -20,11 +19,11 @@ export const reminderWorker = new Worker('reminder-queue', async (job) => {
     });
     return { ok: true };
 }, { connection });
-// Log completed jobs
+// completed jobs
 reminderWorker.on('completed', (job) => {
     console.log('Reminder job completed', job.id);
 });
-// Log failed jobs
+// failed jobs
 reminderWorker.on('failed', (job, err) => {
     console.error('Reminder job failed', job?.id, err?.message || err);
 });
