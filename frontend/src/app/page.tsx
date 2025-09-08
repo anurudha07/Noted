@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import Header from '../components/Header';
 import NoteCard from '../components/NoteCard';
 import API from '../lib/api';
@@ -81,9 +81,22 @@ export default function HomePage() {
   const [reminderMessage, setReminderMessage] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
   const router = useRouter();
   const quickRef = useRef<HTMLDivElement | null>(null);
   const creatingRef = useRef(false);
+
+  useEffect(() => {
+    // detect touch devices (pointer: coarse) after mount to avoid SSR mismatch
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      try {
+        setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches);
+      } catch (e) {
+        setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      }
+    }
+  }, []);
 
   useEffect(() => { if (!reminderMessage) return; const t = setTimeout(() => setReminderMessage(''), 10000); return () => clearTimeout(t); }, [reminderMessage]);
 
@@ -190,12 +203,17 @@ export default function HomePage() {
     } catch (err) { console.error(err); }
   }, [editingNote]);
 
-  // dnd-kit setup
+  // dnd-kit sensors setup (we create sensor descriptors unconditionally,
+  // but we pass only the appropriate sensors into useSensors based on runtime touch detection)
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 6 } });
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 2000, tolerance: 5 } });
+  const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
+
+  // Choose which sensors to activate depending on device type.
+  // On touch devices: remove PointerSensor (to avoid accidental drag on scroll) and require long-press TouchSensor.
+  // On non-touch devices: include PointerSensor for immediate dragging.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    // require a 2 second hold on touch devices before drag starts
-    useSensor(TouchSensor, { activationConstraint: { delay: 2000, tolerance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    ...(isTouchDevice ? [touchSensor, keyboardSensor] : [pointerSensor, touchSensor, keyboardSensor])
   );
 
   const onDragEnd = useCallback((event: DragEndEvent) => {
@@ -214,7 +232,7 @@ export default function HomePage() {
   }, []);
 
   // sidebar list sorted by timestamp (used for both desktop and mobile views)
-  const sidebarNotes = notes.slice().sort((a,b) => getNoteTimestamp(b) - getNoteTimestamp(a));
+  const sidebarNotes = useMemo(() => notes.slice().sort((a,b) => getNoteTimestamp(b) - getNoteTimestamp(a)), [notes]);
 
   return (
     <div className="min-h-screen bg-black text-gray-200">
@@ -263,7 +281,7 @@ export default function HomePage() {
                 <div className="flex flex-col gap-2">
                   {sidebarNotes.map(n => (
                     <SortableItem key={n._id} id={n._id}>
-                      <button onClick={() => openEdit(n)} className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 hover:black transition border border-transparent hover:border-gray-700" title={String(n.title || (n.content ? String(n.content).slice(0,120) : ''))}>
+                      <button onClick={() => openEdit(n)} className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 transition border border-transparent hover:border-gray-700" title={String(n.title || (n.content ? String(n.content).slice(0,120) : ''))}>
                         <div className="font-semibold text-sm truncate w-full">{n.title || (n.content ? String(n.content).split('\n')[0].slice(0,40) : 'Untitled')}</div>
                         <div className="text-[11px] text-gray-400 line-clamp-2 w-full">{String(n.content || '').slice(0,80)}</div>
                       </button>
@@ -289,7 +307,7 @@ export default function HomePage() {
                     <div className="flex flex-col gap-2">
                       {sidebarNotes.map(n => (
                         <SortableItem key={n._id} id={n._id}>
-                          <button onClick={() => openEdit(n)} className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 hover:black transition border border-transparent hover:border-gray-700" title={String(n.title || (n.content ? String(n.content).slice(0,120) : ''))}>
+                          <button onClick={() => openEdit(n)} className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 transition border border-transparent hover:border-gray-700" title={String(n.title || (n.content ? String(n.content).slice(0,120) : ''))}>
                             <div className="font-semibold text-sm truncate w-full">{n.title || (n.content ? String(n.content).split('\n')[0].slice(0,40) : 'Untitled')}</div>
                             <div className="text-[11px] text-gray-400 line-clamp-2 w-full">{String(n.content || '').slice(0,80)}</div>
                           </button>
