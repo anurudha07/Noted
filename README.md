@@ -6,7 +6,7 @@ Noted
 
 ---
 
-   A personal, minimal note takign app with in built reminder system, leveraging Node with BullMQ for backend developement & 
+   A personal, minimal note taking app with in built reminder system, leveraging Node with BullMQ for backend developement & 
         for frontend utilizing Next.js with Tailwind for frontend and ensuring typesafety with TypeScript.
 
 
@@ -27,7 +27,9 @@ Noted
 
        Search notes with effective search bar
 
-       Get reminders via Email
+       Reminders via Email
+
+       Dedicated trash 30 day retention
 
        Notes grid with responsive cards (dark UI)
 
