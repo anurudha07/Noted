@@ -29,7 +29,7 @@ Noted
 
        Reminders via Email
 
-       Dedicated trash 30 day retention
+       Dedicated profile, reminder, trash (30 day retention)
 
        Notes grid with responsive cards (dark UI)
 
