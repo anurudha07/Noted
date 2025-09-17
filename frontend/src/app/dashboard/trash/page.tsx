@@ -125,13 +125,8 @@ export default function TrashMinimal() {
 
   return (
     <div className="w-full min-h-screen bg-black-950 text-white flex flex-col">
-      <header className="w-full bg-black-950">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-20 py-3">
-          <div className="flex items-center gap-2 text-base text-blue-600">
-            <span className="text-xl text-gray-400">Noted</span>
-          </div>
-        </div>
-        <header className="w-full bg-black-950 fixed top-0 z-20">
+      
+  <header className="w-full bg-black-950 fixed top-0 z-20">
   <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-20 py-3 flex justify-between items-center">
     <div className="flex items-center gap-2 text-base text-blue-600">
       <span className="text-xl text-gray-400">Noted</span>
@@ -145,7 +140,7 @@ export default function TrashMinimal() {
   </div>
 </header>
 
-      </header>
+
 
       <main className="flex-1 text-center max-w-3xl mx-auto px-4" style={{ marginTop: '6.5rem' }}>
         <motion.h1
