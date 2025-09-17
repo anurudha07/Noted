@@ -91,7 +91,7 @@ export default function ProfilePage() {
       localStorage.removeItem('profile');
       localStorage.removeItem('authUser');
     } catch {}
-    router.replace('/login'); // redirect to login page
+    router.replace('/'); 
   };
 
   return (
