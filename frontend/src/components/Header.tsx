@@ -125,7 +125,7 @@ export default function Header() {
           </button>
 
           {appOpen && (
-            <div className="absolute right-0 mt-2 w-48 h-32  bg-black border border-gray-800 shadow-lg z-45 ">
+            <div className="absolute right-0 mt-3 w-38 h-32  bg-black border border-gray-800 shadow-lg z-45 ">
               <div className="p-2">
                 <div className="text-sm text-gray-400 uppercase tracking-wide mb-2">Apps</div>
                 {apps.map(app => (
