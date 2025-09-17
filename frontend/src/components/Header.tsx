@@ -125,7 +125,7 @@ export default function Header() {
           </button>
 
           {appOpen && (
-            <div className="absolute right-0 mt-3.4 w-38 h-32  bg-black border border-gray-800 shadow-lg z-45 ">
+            <div className="absolute right-0 mt-4 w-38 h-32  bg-black border border-gray-800 shadow-lg z-45 ">
               <div className="p-2">
                 <div className="text-sm text-gray-400 uppercase tracking-wide mb-2">Apps</div>
                 {apps.map(app => (
@@ -155,7 +155,7 @@ export default function Header() {
           </button>
 
           {profileOpen && (
-            <div className="absolute right-0 mt-3.4 w-56 bg-black border border-gray-800 shadow-lg z-50 ">
+            <div className="absolute right-0 mt-4 w-56 bg-black border border-gray-800 shadow-lg z-50 ">
               <div className="p-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-800 border border-gray-700 text-sm font-semibold">{initial}</div>
