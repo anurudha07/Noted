@@ -8,7 +8,7 @@ Noted
 
    A personal, minimal note taking app with built in features and reminders.
 
-   <p><small><a href="noted-5ahw.onrender.com/" target="_blank" rel="noopener noreferrer">View demo</a></small></p>
+   <p><small><a href="https://noted-5ahw.onrender.com/" target="_blank" rel="noopener noreferrer">View demo</a></small></p>
 
 ```
 
