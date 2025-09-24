@@ -6,9 +6,9 @@ Noted
 
 ---
 
-   A personal, minimal note taking app with in built reminder system, leveraging Node with BullMQ for backend developement & 
-        for frontend utilizing Next.js with Tailwind for frontend and ensuring typesafety with TypeScript.
+   A personal, minimal note taking app with built in features and reminders.
 
+   <p><small><a href="(https://noted-5ahw.onrender.com/)" target="_blank" rel="noopener noreferrer">View demo</a></small></p>
 
 ```
 
