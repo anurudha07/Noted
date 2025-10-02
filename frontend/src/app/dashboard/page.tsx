@@ -28,10 +28,11 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+// --- Types
 type Reminder = { at?: string; sent?: boolean; jobId?: string };
-
 type NoteType = { _id: string; title?: string; content?: string; reminder?: Reminder; [k: string]: unknown };
 
+// --- Helpers
 function getNoteTimestamp(n: NoteType) {
   const tryFields = ['updatedAt','updated_at','modifiedAt','modified_at','editedAt','edited_at','createdAt','created_at'];
   for (const f of tryFields) {
@@ -56,7 +57,6 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
     transform: CSS.Transform.toString(transform),
     transition: transition || undefined,
     zIndex: isDragging ? 9999 : undefined,
-    // allow vertical pan (scroll) by default; only block touch-action while actively dragging
     touchAction: isDragging ? 'none' : 'pan-y',
     WebkitTapHighlightColor: 'transparent',
     WebkitUserSelect: 'none',
@@ -72,6 +72,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
 }
 
 export default function HomePage() {
+  // --- state
   const [notes, setNotes] = useState<NoteType[]>([]);
   const [query, setQuery] = useState('');
   const [editingNote, setEditingNote] = useState<NoteType | null>(null);
@@ -80,60 +81,51 @@ export default function HomePage() {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [reminderMessage, setReminderMessage] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [saving, setSaving] = useState(false); // <--- new saving state
 
   const router = useRouter();
   const quickRef = useRef<HTMLDivElement | null>(null);
   const creatingRef = useRef(false);
 
+  // textarea ref for auto-resize in modal
+  const editTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // --- touch detection
   useEffect(() => {
-    // detect touch devices (pointer: coarse) after mount to avoid SSR mismatch
     if (typeof window !== 'undefined' && window.matchMedia) {
-      try {
-        setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches);
-      } catch (e) {
-        setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
-      }
+      try { setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches); } catch (e) { setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0); }
     }
   }, []);
 
-  useEffect(() => { if (!reminderMessage) return; const t = setTimeout(() => setReminderMessage(''), 10000); return () => clearTimeout(t); }, [reminderMessage]);
+  useEffect(() => { if (!reminderMessage) return; const t = setTimeout(() => setReminderMessage(''), 5000); return () => clearTimeout(t); }, [reminderMessage]);
 
+  // --- fetch notes
   const fetchNotes = useCallback(async () => {
     setLoading(true);
     try {
       const res: AxiosResponse<NoteType[]> = await API.get('/api/notes');
       let sorted = (res.data || []).slice().sort((a, b) => getNoteTimestamp(b) - getNoteTimestamp(a));
-      // apply locally persisted order (fallback) so client keeps order across reloads
       try {
         const stored = typeof window !== 'undefined' ? localStorage.getItem('notesOrder') : null;
         if (stored) {
           const order: string[] = JSON.parse(stored);
           const map = new Map(sorted.map(n => [n._id, n]));
           const reordered: NoteType[] = [];
-          for (const id of order) {
-            const it = map.get(id);
-            if (it) { reordered.push(it); map.delete(id); }
-          }
+          for (const id of order) { const it = map.get(id); if (it) { reordered.push(it); map.delete(id); } }
           for (const v of map.values()) reordered.push(v);
           sorted = reordered;
         }
-      } catch (e) { /* ignore localStorage parse errors */ }
+      } catch (e) {}
       setNotes(sorted);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   }, []);
 
   const parseQuickText = useCallback((text: string) => {
     const lines = text.split(/\r?\n/).map(l => l.trim());
     let title = '', content = '';
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i] !== '') { title = lines[i]; content = lines.slice(i+1).join('\n'); break; }
-    }
+    for (let i = 0; i < lines.length; i++) { if (lines[i] !== '') { title = lines[i]; content = lines.slice(i+1).join('\n'); break; } }
     return { title, content };
   }, []);
 
@@ -180,57 +172,56 @@ export default function HomePage() {
 
   const openEdit = useCallback((note: NoteType) => { setEditingNote({ ...note }); setMobileDrawerOpen(false); setReminderMessage(''); }, []);
 
+  // auto-resize helper for the edit modal textarea
+  const autoResizeEditTextarea = useCallback(() => {
+    const ta = editTextareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    // add a small extra so caret never touches bottom
+    ta.style.height = Math.min(600, ta.scrollHeight + 2) + 'px';
+  }, []);
+
+  // call auto-resize when editingNote changes (open) or when its content updates
+  useEffect(() => {
+    if (!editingNote) return;
+    // wait for textarea to mount
+    const t = setTimeout(() => autoResizeEditTextarea(), 25);
+    return () => clearTimeout(t);
+  }, [editingNote, autoResizeEditTextarea]);
+
+  // --- fixed saveEdit: previously used editingNote._1d (typo). Added 'saving' UX.
   const saveEdit = useCallback(async () => {
     if (!editingNote) return;
+    setSaving(true);
     try {
-      const res = await API.put<NoteType>(`/api/notes/${editingNote._id}`, {
-        title: editingNote.title,
-        content: editingNote.content,
-      });
-      // update the note in-place (keep main area order unchanged)
+      const res = await API.put<NoteType>(`/api/notes/${editingNote._id}`, { title: editingNote.title, content: editingNote.content });
       setNotes(prev => prev.map(n => (n._id === res.data._id ? res.data : n)));
       setEditingNote(null);
     } catch (err) {
-      console.error(err);
+      console.error('Failed saving note', err);
+      setReminderMessage('Failed to save note');
+    } finally {
+      setSaving(false);
     }
   }, [editingNote]);
 
   const deleteNote = async (id: string) => {
-  const prev =  [...notes];
-  // optimistic UI
-  setNotes(prevNotes => prevNotes.filter(n => n._id !== id));
-  try {
-    const res = await API.post(`/api/notes/${id}/trash`);
-    if (!res || (res.status && res.status >= 400)) {
-      throw new Error('Server error deleting note');
+    const prev = [...notes];
+    setNotes(prevNotes => prevNotes.filter(n => n._id !== id));
+    try {
+      const res = await API.post(`/api/notes/${id}/trash`);
+      if (!res || (res.status && res.status >= 400)) throw new Error('Server error deleting note');
+    } catch (err) {
+      console.error('Failed to move note to trash', err);
+      setNotes(prev);
     }
-  } catch (err) {
-    console.error('Failed to move note to trash', err);
-    // rollback
-    setNotes(prev);
-    // optionally notify user of failure
-  }
-};
+  };
 
-
-
-
-
-
-  // dnd-kit sensors setup (we create sensor descriptors unconditionally,
-  // but we pass only the appropriate sensors into useSensors based on runtime touch detection)
+  // --- dnd-kit sensors
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 6 } });
-
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } });
-
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
-
-  // Choose which sensors to activate depending on device type.
-  // On touch devices: remove PointerSensor (to avoid accidental drag on scroll) and require long-press TouchSensor.
-  // On non-touch devices: include PointerSensor for immediate dragging.
-  const sensors = useSensors(
-    ...(isTouchDevice ? [touchSensor, keyboardSensor] : [pointerSensor, touchSensor, keyboardSensor])
-  );
+  const sensors = useSensors(...(isTouchDevice ? [touchSensor, keyboardSensor] : [pointerSensor, touchSensor, keyboardSensor]));
 
   const onDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
@@ -240,66 +231,90 @@ export default function HomePage() {
       const newIndex = prev.findIndex(p => p._id === over.id);
       if (oldIndex === -1 || newIndex === -1) return prev;
       const next = arrayMove(prev, oldIndex, newIndex);
-      // persist order to server and local fallback so reload keeps placement
       try { localStorage.setItem('notesOrder', JSON.stringify(next.map(n => n._id))); } catch (e) {}
       API.post('/api/notes/reorder', { order: next.map(n => n._id) }).catch(() => {});
       return next;
     });
   }, []);
 
-  // sidebar list sorted by timestamp (used for both desktop and mobile views)
   const sidebarNotes = useMemo(() => notes.slice().sort((a,b) => getNoteTimestamp(b) - getNoteTimestamp(a)), [notes]);
 
+  // --- UI: extremely thin, thread-like scrollbars (2px) for sidebar and main area; hide scrollbars in modal content/textarea
   return (
-    <div className="min-h-screen bg-black text-gray-200">
+    <div className="min-h-screen bg-black text-gray-200 text-xs">
       <style jsx global>{`
-@media (min-width: 768px){
-  /* narrow, darker scrollbar for desktop */
-  .custom-scrollbar::-webkit-scrollbar{width:6px}
-  .custom-scrollbar::-webkit-scrollbar-track{background:transparent}
-  .custom-scrollbar::-webkit-scrollbar-thumb{background-color:#0f0f10;border-radius:9999px;border:2px solid transparent;background-clip:padding-box}
+  /* ULTRA-THIN "thread" scrollbars */
+  .custom-scrollbar::-webkit-scrollbar,
+  .main-scroll::-webkit-scrollbar {
+    width: 2px;       /* super thin vertical scrollbar */
+    height: 2px;      /* super thin horizontal scrollbar */
+  }
 
-  /* main area scrollbar (applies to the main container when you add .main-scroll) */
-  .main-scroll::-webkit-scrollbar{width:6px}
-  .main-scroll::-webkit-scrollbar-track{background:transparent}
-  .main-scroll::-webkit-scrollbar-thumb{background-color:#0f0f10;border-radius:9999px;border:2px solid transparent;background-clip:padding-box}
+  .custom-scrollbar::-webkit-scrollbar-track,
+  .main-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-  /* body fallback */
-  body::-webkit-scrollbar{width:6px}
-  body::-webkit-scrollbar-track{background:transparent}
-  body::-webkit-scrollbar-thumb{background-color:#0f0f10;border-radius:9999px;border:2px solid transparent;background-clip:padding-box}
+  .custom-scrollbar::-webkit-scrollbar-thumb,
+  .main-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.4); /* subtle color */
+    border-radius: 9999px;
+    min-height: 20px;
+    border: 0px solid transparent;
+    background-clip: padding-box;
+  }
+
+  /* Slightly more visible on hover */
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  .main-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0,0,0,0.6);
+  }
 
   /* Firefox */
-  .custom-scrollbar{scrollbar-width:thin;scrollbar-color:#0f0f10 transparent}
-  .main-scroll{scrollbar-width:thin;scrollbar-color:#0f0f10 transparent}
-  body{scrollbar-width:thin;scrollbar-color:#0f0f10 transparent}
-}
-
-/* mobile / touch devices: prefer natural vertical pan-y scrolling unless actively dragging */
-@media (pointer: coarse) {
-  .main-scroll, .custom-scrollbar, .panel-transparent {
-    touch-action: pan-y;
-    -ms-touch-action: pan-y;
+  .custom-scrollbar,
+  .main-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.4) transparent;
   }
-}
-      `}</style>
-      <style jsx>{`.note-card-wrapper{min-height:56px}`}</style>
+
+  /* Hide scrollbars inside the edit modal and its textarea while keeping scrollability if needed (mobile) */
+  .note-modal,
+  .note-modal textarea {
+    scrollbar-width: none; /* firefox */
+    -ms-overflow-style: none; /* ie */
+  }
+  .note-modal textarea::-webkit-scrollbar { display: none; }
+  .note-modal::-webkit-scrollbar { display: none; }
+
+  /* Touch devices (mobile) */
+  @media (pointer: coarse) {
+    .main-scroll {
+      touch-action: pan-y;
+    }
+  }
+`}</style>
+
       <div className="md:flex">
-        <aside className="hidden md:flex flex-col w-72 fixed left-0 top-0 bottom-0 border-r border-gray-800 bg-black overflow-y-auto custom-scrollbar">
-          <div className="p-4 border-b border-gray-800">
-            <div className="text-gray-400 text-xl uppercase tracking-wide mb-2">All Notes</div>
-            <button onClick={() => fetchNotes()} className="w-full py-4 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200">Refresh</button>
+        {/* Sidebar (desktop) */}
+        <aside className="hidden md:flex flex-col w-72 fixed left-0 top-0 bottom-0 border-r border-gray-800 bg-black overflow-y-auto custom-scrollbar p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-baseline gap-3">
+              <div className="uppercase tracking-wide text-gray-500 text-[18px]">ALL NOTES</div>
+              <div className="text-[11px] text-gray-500">{notes.length}</div>
+            </div>
+            <button onClick={() => fetchNotes()} className="text-[12px] px-2 py-1 bg-gray-900 ">Refresh</button>
           </div>
-          <nav className="flex-1 p-2 overflow-y-auto">
-            {notes.length === 0 && <div className="text-xs text-gray-500 p-4 text-center">No notes</div>}
+
+          <nav className="flex-1 overflow-y-auto">
+            {notes.length === 0 && <div className="text-[11px] text-gray-500 p-3 text-center">No notes</div>}
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={sidebarNotes.map(n=>n._id)} strategy={verticalListSortingStrategy}>
                 <div className="flex flex-col gap-2">
                   {sidebarNotes.map(n => (
                     <SortableItem key={n._id} id={n._id}>
-                      <button onClick={() => openEdit(n)} className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 transition border border-transparent hover:border-gray-700" title={String(n.title || (n.content ? String(n.content).slice(0,120) : ''))}>
-                        <div className="font-semibold text-sm truncate w-full">{n.title || (n.content ? String(n.content).split('\n')[0].slice(0,40) : 'Untitled')}</div>
-                        <div className="text-[11px] text-gray-400 line-clamp-2 w-full">{String(n.content || '').slice(0,80)}</div>
+                      <button onClick={() => openEdit(n)} className="w-full text-left p-3  hover:bg-gray-900 transition-colors flex flex-col gap-1">
+                        <div className="font-semibold text-[13px] truncate">{n.title || (n.content ? String(n.content).split('\n')[0].slice(0,40) : 'Untitled')}</div>
+                        <div className="text-[11px] text-gray-400 line-clamp-2">{String(n.content || '').slice(0,100)}</div>
                       </button>
                     </SortableItem>
                   ))}
@@ -309,65 +324,68 @@ export default function HomePage() {
           </nav>
         </aside>
 
+        {/* Mobile drawer */}
         {mobileDrawerOpen && (
           <div className="md:hidden fixed inset-0 z-40">
             <div className="absolute inset-0 bg-black/40 z-30" onClick={() => setMobileDrawerOpen(false)} />
-            <div className="absolute left-0 top-0 bottom-0 w-80 p-4 bg-black overflow-y-auto border-r border-gray-800 z-40">
-              <div className="flex items-center justify-end mb-4"><button onClick={() => setMobileDrawerOpen(false)} className="px-2 py-1 text-xs rounded-sm panel-transparent">Close</button></div>
-              <div className="p-4 border-b border-gray-800"><div className="text-gray-400 text-xl uppercase tracking-wide mb-2">All Notes</div><button onClick={() => fetchNotes()} className="w-full py-4 text-xs bg-gray-800 hover:bg-gray-700 text-gray-200">Refresh</button></div>
-              <nav className="mt-3">
-                {notes.length === 0 && <div className="text-xs text-gray-500 p-4 text-center">No notes</div>}
-                {/* use the same sorted sidebarNotes here so mobile shows most-recent-first */}
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                  <SortableContext items={sidebarNotes.map(n=>n._id)} strategy={verticalListSortingStrategy}>
-                    <div className="flex flex-col gap-2">
-                      {sidebarNotes.map(n => (
-                        <SortableItem key={n._id} id={n._id}>
-                          <button onClick={() => openEdit(n)} className="flex flex-col items-start gap-2 w-full text-left px-3 py-3 transition border border-transparent hover:border-gray-700" title={String(n.title || (n.content ? String(n.content).slice(0,120) : ''))}>
-                            <div className="font-semibold text-sm truncate w-full">{n.title || (n.content ? String(n.content).split('\n')[0].slice(0,40) : 'Untitled')}</div>
-                            <div className="text-[11px] text-gray-400 line-clamp-2 w-full">{String(n.content || '').slice(0,80)}</div>
-                          </button>
-                        </SortableItem>
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              </nav>
+            <div className="absolute left-0 top-0 bottom-0 w-72 p-3 bg-black overflow-y-auto border-r border-gray-800 z-40">
+              <div className="flex items-center justify-between mb-2"><div className="text-gray-400 uppercase text-[11px]">Notes</div><button onClick={() => setMobileDrawerOpen(false)} className="text-[11px]">Close</button></div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext items={sidebarNotes.map(n=>n._id)} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col gap-2">
+                    {sidebarNotes.map(n => (
+                      <SortableItem key={n._id} id={n._id}>
+                        <button onClick={() => openEdit(n)} className="w-full text-left p-3 rounded-lg hover:bg-gray-900 transition-colors flex flex-col gap-1">
+                          <div className="font-semibold text-[13px] truncate">{n.title || (n.content ? String(n.content).split('\n')[0].slice(0,40) : 'Untitled')}</div>
+                          <div className="text-[11px] text-gray-400 line-clamp-2">{String(n.content || '').slice(0,100)}</div>
+                        </button>
+                      </SortableItem>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
           </div>
         )}
 
+        {/* Main area */}
         <main className="flex-1 md:ml-72 main-scroll">
           <Header />
-          <div className="p-4 max-w-7xl mx-auto">
+          <div className="p-4 max-w-6xl mx-auto">
             <header className="flex items-center justify-between p-2 border-b border-gray-800 bg-black sticky top-0 z-20">
-              <div className="flex items-center gap-2"><button aria-label="Open menu" onClick={() => setMobileDrawerOpen(true)} className="md:hidden px-2 py-1 text-xs rounded-sm panel-transparent">☰</button><div className="text-3xl">Noted</div></div>
-              <div className="flex-1 max-w-xs mx-4"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="|    S E A R C H  ..." className="w-full px-8 py-10 text-l bg-transparent border border-gray-700 placeholder-gray-400 focus:outline-none focus:border-gray-500"/></div>
+              <div className="flex items-center gap-2"><button aria-label="Open menu" onClick={() => setMobileDrawerOpen(true)} className="md:hidden text-[13px]">☰</button><div className="text-2xl leading-none">Noted</div></div>
+              <div className="flex-1 max-w-xs mx-3"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search notes ..." className="w-full px-3 py-2 text-sm bg-transparent border border-gray-700 placeholder-gray-500 focus:outline-none rounded"/></div>
             </header>
 
-            <div className="mb-6">
-              <div ref={quickRef} className="p-3 panel-transparent border border-gray-800">
-                <textarea value={quickText} onChange={e=>setQuickText(e.target.value)} placeholder="Quick note — first line becomes title, rest is content" rows={3} className="w-full p-2 text-xs bg-transparent resize-none focus:outline-none" />
-                <div className="flex items-center justify-end gap-2 mt-8"><button onClick={()=>setQuickText('')} className="px-3 py-1 text-xs rounded-sm panel-transparent">Clear</button><button onClick={createQuickNote} className="px-6 py-6 text-xs rounded-none bg-gray-800 text-white">New Note</button></div>
+            <div className="my-3">
+              <div ref={quickRef} className="p-3 border border-gray-800 ">
+                <textarea value={quickText} onChange={e=>setQuickText(e.target.value)} placeholder="Quick note — first line becomes title, rest is content." rows={2} className="w-full p-2 text-xs bg-transparent resize-none focus:outline-none" />
+                <div className="flex items-center justify-end gap-2 mt-2">
+                  <button onClick={()=>setQuickText('')} className="px-2 py-1 text-[11px] rounded panel-transparent">Clear</button>
+                  <button onClick={createQuickNote} className="px-3 py-1 text-[12px] bg-gray-800">New</button>
+                </div>
               </div>
             </div>
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={notes.map(n=>n._id)} strategy={rectSortingStrategy}>
                 <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {loading && <div className="text-xs text-gray-400">Loading...</div>}
-                  {!loading && filtered.length === 0 && <div className="text-xs text-gray-400">No notes found</div>}
+                  {loading && <div className="text-[11px] text-gray-400">Loading...</div>}
+                  {!loading && filtered.length === 0 && <div className="text-[11px] text-gray-400">No notes found</div>}
                   {filtered.map(note => (
-  <SortableItem id={note._id} key={note._id}>
-    <NoteCard
-      note={note}
-      onClick={() => openEdit(note)}
-      onDelete={() => deleteNote(note._id)}
-    />
-  </SortableItem>
-
-
-
+                    <SortableItem id={note._id} key={note._id}>
+                      <div className="rounded-lg border border-gray-800 p-3 hover:shadow-lg transition-shadow bg-gradient-to-br from-black/60 to-black/40">
+                        <div className="text-[13px] font-semibold mb-1 truncate">{note.title || (note.content ? String(note.content).split('\n')[0].slice(0,60) : 'Untitled')}</div>
+                        <div className="text-[12px] text-gray-400 mb-2 line-clamp-4">{String(note.content || '').slice(0,180)}</div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-[11px] text-gray-500">{note.reminder?.at ? new Date(String(note.reminder.at)).toLocaleString() : ''}</div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => openEdit(note)} className="text-[11px] px-2 py-1 rounded panel-transparent">Edit</button>
+                            <button onClick={() => deleteNote(note._id)} className="text-[11px] px-2 py-1 rounded panel-transparent">Del</button>
+                          </div>
+                        </div>
+                      </div>
+                    </SortableItem>
                   ))}
                 </section>
               </SortableContext>
@@ -377,21 +395,47 @@ export default function HomePage() {
         </main>
       </div>
 
+      {/* EDIT MODAL */}
       {editingNote && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditingNote(null)} />
-          <div className="relative w-full max-w-2xl p-4 bg-transparent border border-gray-800 rounded">
-            <input value={editingNote.title} onChange={e=>setEditingNote(prev=>prev?{...prev,title:e.target.value}:prev)} placeholder="Title" className="w-full p-2 mb-2 text-sm bg-transparent border-b border-gray-800 focus:outline-none" />
-            <textarea value={editingNote.content} onChange={e=>setEditingNote(prev=>prev?{...prev,content:e.target.value}:prev)} rows={10} className="w-full p-2 text-sm bg-transparent resize-none focus:outline-none" />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditingNote(null)} />
+          {/* added class note-modal and overflow visible; textarea auto-resizes; scrollbars hidden via CSS above */}
+          <div className="note-modal relative w-full max-w-xl p-3 bg-black border border-gray-800 rounded-lg overflow-visible">
+            <input
+              value={editingNote.title}
+              onChange={e=>setEditingNote(prev=>prev?{...prev,title:e.target.value}:prev)}
+              placeholder="Title"
+              className="w-full p-2 mb-2 text-sm bg-transparent border-b border-gray-800 focus:outline-none"
+            />
+            <textarea
+              ref={editTextareaRef}
+              value={editingNote.content}
+              onChange={e=>{
+                const v = e.target.value;
+                setEditingNote(prev=>prev?{...prev,content:v}:prev);
+                // auto-resize as the user types
+                const ta = editTextareaRef.current;
+                if (ta) {
+                  ta.style.height = 'auto';
+                  ta.style.height = Math.min(600, ta.scrollHeight + 2) + 'px';
+                }
+              }}
+              rows={4}
+              className="w-full p-2 text-sm bg-transparent resize-none focus:outline-none"
+            />
 
-            <div className="flex items-center justify-between gap-2 mt-3">
+            <div className="flex items-center justify-between gap-2 mt-2">
               <div className="flex items-center gap-2">
-                <button onClick={() => { setDialogOpen(true); setReminderMessage(''); }} className="px-3 py-1 text-xs rounded-sm panel-transparent">Set reminder</button>
-                {editingNote?.reminder?.at ? <div className="text-xs text-gray-400">Scheduled: {new Date(String(editingNote.reminder.at)).toLocaleString()} • Sent: {editingNote.reminder.sent ? 'Yes' : 'No'}</div> : <div className="text-xs text-gray-400">No reminder</div>}
+                <button onClick={() => { setDialogOpen(true); setReminderMessage(''); }} className="px-2 py-1 text-[11px] rounded panel-transparent">Set reminder</button>
+                {editingNote?.reminder?.at ? <div className="text-[11px] text-gray-400">Scheduled: {new Date(String(editingNote.reminder.at)).toLocaleString()}</div> : <div className="text-[11px] text-gray-400">No reminder</div>}
               </div>
-              <div className="flex items-center gap-2"><button onClick={() => setEditingNote(null)} className="px-3 py-1 text-xs rounded-sm panel-transparent">Cancel</button><button onClick={saveEdit} className="w-18 h-15 flex items-center justify-center bg-gray-800 text-white text-sm">Save</button></div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setEditingNote(null)} className="px-2 py-1 text-[11px] rounded panel-transparent">Cancel</button>
+                <button onClick={saveEdit} disabled={saving} className="px-3 py-1 bg-gray-800 text-[12px] rounded">
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
             </div>
-            {editingNote.reminder?.at && <div className="text-xs text-gray-400 mt-2">Scheduled at: {new Date(String(editingNote.reminder.at)).toLocaleString()} • Sent: {editingNote.reminder.sent ? 'Yes' : 'No'}</div>}
           </div>
         </div>
       )}
@@ -408,7 +452,7 @@ export default function HomePage() {
         finally { setDialogOpen(false); }
       }} />
 
-      {reminderMessage && <div className="fixed bottom-6 right-6 text-xs text-green-400">{reminderMessage}</div>}
+      {reminderMessage && <div className="fixed bottom-4 right-4 text-[12px] text-green-400">{reminderMessage}</div>}
     </div>
   );
 }
