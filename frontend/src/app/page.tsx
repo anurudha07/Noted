@@ -10,10 +10,9 @@ type Pos = { x: number; y: number };
 
 export default function Home(): React.ReactElement {
   const [catPos, setCatPos] = useState<Pos>({ x: 200, y: 200 });
-  const [animationData, setAnimationData] = useState<any | null>(null);
+  const [animationData, setAnimationData] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
-    // load animation JSON from public folder
     fetch('/developer-animation.json')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load animation');
