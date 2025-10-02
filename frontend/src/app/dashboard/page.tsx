@@ -329,7 +329,7 @@ export default function HomePage() {
           <div className="md:hidden fixed inset-0 z-40">
             <div className="absolute inset-0 bg-black/40 z-30" onClick={() => setMobileDrawerOpen(false)} />
             <div className="absolute left-0 top-0 bottom-0 w-72 p-3 bg-black overflow-y-auto border-r border-gray-800 z-40">
-              <div className="flex items-center justify-between mb-2"><div className="text-gray-400 uppercase text-[11px]">Notes</div><button onClick={() => setMobileDrawerOpen(false)} className="text-[11px]">Close</button></div>
+              <div className="flex items-center justify-between mb-2"><div className="text-gray-400 uppercase text-[13px]">All Notes</div><button onClick={() => setMobileDrawerOpen(false)} className="text-[11px]">Close</button></div>
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                 <SortableContext items={sidebarNotes.map(n=>n._id)} strategy={verticalListSortingStrategy}>
                   <div className="flex flex-col gap-2">
