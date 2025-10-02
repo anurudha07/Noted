@@ -223,7 +223,7 @@ export default function HomeReminders() {
                     {n.title || (n.content ?? '').split('\n')[0] || 'Untitled'}
                   </h3>
                   <p className="text-xs text-gray-300 max-w-md">{truncateWords(n.content ?? '', 6)}</p>
-                  <div className="text-2xs text-gray-400 mt-1">
+                  <div className="text-xs text-gray-400 mt-1">
                     {n.reminder?.at ? new Date(n.reminder.at).toLocaleString() : 'No date'} • Sent: {n.reminder?.sent ? 'Yes' : 'No'}
                   </div>
                 </div>
