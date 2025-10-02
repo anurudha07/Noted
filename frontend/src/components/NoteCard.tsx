@@ -17,7 +17,6 @@ type Props = {
 export default function NoteCard({ note, onClick, onDelete }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const cardRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // Close menu on outside click or Escape
@@ -46,7 +45,6 @@ export default function NoteCard({ note, onClick, onDelete }: Props) {
     };
   }, [menuOpen]);
 
-  // Accessibility: allow Enter / Space to activate the card
   function handleCardKey(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -61,17 +59,16 @@ export default function NoteCard({ note, onClick, onDelete }: Props) {
 
   return (
     <article
-      ref={cardRef}
       role="button"
       tabIndex={0}
       onClick={onClick}
       onKeyDown={handleCardKey}
       aria-label={note.title ? `Open note ${note.title}` : 'Open note'}
-      className="relative w-full h-full p-4 bg-transparent text-gray-100 text-sm shadow-sm border border-gray-800 hover:border-gray-600 cursor-pointer flex flex-col min-w-[220px] md:min-w-[260px]"
+      className="relative w-full h-full p-2 bg-transparent text-gray-100 text-xs shadow-sm border border-gray-800 hover:border-gray-600 cursor-pointer flex flex-col min-w-[180px] md:min-w-[200px] rounded-sm"
     >
       {/* header / title */}
-      <header className="mb-2">
-        <h3 className="text-sm font-semibold truncate" title={note.title}>
+      <header className="mb-1">
+        <h3 className="text-xs font-semibold truncate" title={note.title}>
           {note.title || 'Untitled'}
         </h3>
       </header>
@@ -79,13 +76,13 @@ export default function NoteCard({ note, onClick, onDelete }: Props) {
       {/* content */}
       <div className="flex-1 overflow-hidden">
         <div
-          className="text-[13px] text-gray-300 whitespace-pre-wrap break-words"
+          className="text-[11px] text-gray-300 whitespace-pre-wrap break-words"
           style={{
             display: '-webkit-box',
             WebkitBoxOrient: 'vertical',
-            WebkitLineClamp: 6,
-            maxHeight: '9.6rem',
-            overflow: 'hidden',
+            WebkitLineClamp: 4, // fewer lines for smaller card
+            maxHeight: '6.4rem', // smaller height
+            overflow: 'hidden', // no scrollbar
           }}
         >
           {note.content || ''}
@@ -93,7 +90,7 @@ export default function NoteCard({ note, onClick, onDelete }: Props) {
       </div>
 
       {/* three-dot button */}
-      <div className="absolute right-2 bottom-2">
+      <div className="absolute right-1 bottom-1">
         <button
           ref={menuButtonRef}
           type="button"
@@ -108,7 +105,7 @@ export default function NoteCard({ note, onClick, onDelete }: Props) {
               toggleMenu();
             }
           }}
-          className="px-2 py-1 text-xs panel-transparent"
+          className="px-1 py-0 text-[10px] panel-transparent"
         >
           . . .
         </button>
@@ -120,7 +117,7 @@ export default function NoteCard({ note, onClick, onDelete }: Props) {
           ref={menuRef}
           role="menu"
           aria-label="Note actions"
-          className="absolute right-0 top-full mt-2 w-36 bg-transparent border border-gray-800 shadow-sm p-1 text-xs z-50"
+          className="absolute right-0 top-full mt-1 w-28 bg-transparent border border-gray-800 shadow-sm p-1 text-[10px] z-50"
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -130,7 +127,7 @@ export default function NoteCard({ note, onClick, onDelete }: Props) {
               setMenuOpen(false);
               onDelete();
             }}
-            className="w-full text-center px-3 py-3 text-xs hover:bg-gray-800/20"
+            className="w-full text-center px-2 py-1 hover:bg-gray-800/20"
           >
             Delete
           </button>
