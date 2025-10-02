@@ -181,7 +181,7 @@ export default function TrashMinimal() {
                     {n.title || (n.content || '').split('\n')[0] || 'Untitled'}
                   </h3>
                   <p className="text-xs text-gray-300 max-w-md">{truncateWords(n.content)}</p>
-                  <div className="text-2xs text-gray-400 mt-1">
+                  <div className="text-xs text-gray-400 mt-1">
                     Deleted: {n.deletedAt ? new Date(n.deletedAt).toLocaleString() : '—'}
                   </div>
                 </div>
