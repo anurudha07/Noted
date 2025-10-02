@@ -19,7 +19,8 @@ function startWeekday(year: number, monthIndex: number) {
   return new Date(year, monthIndex, 1).getDay(); // 0..6 (Sun..Sat)
 }
 
-function parseIsoLocal(iso?: string | null) {
+type ParsedLocal = { year: number; monthIndex: number; day: number; hour: number; minute: number } | null;
+function parseIsoLocal(iso?: string | null): ParsedLocal {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
@@ -41,24 +42,26 @@ export default function DateTimeDialog({
   title = 'Pick date & time',
 }: Props) {
   const now = useMemo(() => new Date(), []);
-  const initial = useMemo(
-    () =>
-      parseIsoLocal(initialIso) || {
-        year: now.getFullYear(),
-        monthIndex: now.getMonth(),
-        day: now.getDate(),
-        hour: now.getHours(),
-        minute: Math.floor(now.getMinutes() / minuteStep) * minuteStep,
-      },
-    [initialIso, now, minuteStep]
-  );
 
-  const [year, setYear] = useState(initial.year);
-  const [monthIndex, setMonthIndex] = useState(initial.monthIndex);
-  const [day, setDay] = useState(initial.day);
-  const [hour, setHour] = useState(initial.hour);
-  const [minute, setMinute] = useState(initial.minute);
+  const initial = useMemo(() => {
+    const parsed = parseIsoLocal(initialIso);
+    if (parsed) return parsed;
+    return {
+      year: now.getFullYear(),
+      monthIndex: now.getMonth(),
+      day: now.getDate(),
+      hour: now.getHours(),
+      minute: Math.floor(now.getMinutes() / minuteStep) * minuteStep,
+    };
+  }, [initialIso, now, minuteStep]);
 
+  const [year, setYear] = useState<number>(initial.year);
+  const [monthIndex, setMonthIndex] = useState<number>(initial.monthIndex);
+  const [day, setDay] = useState<number>(initial.day);
+  const [hour, setHour] = useState<number>(initial.hour);
+  const [minute, setMinute] = useState<number>(initial.minute);
+
+  // reset when opened or when initialIso changes
   useEffect(() => {
     if (!isOpen) return;
     const parsed = parseIsoLocal(initialIso);
@@ -75,14 +78,14 @@ export default function DateTimeDialog({
       setHour(now.getHours());
       setMinute(Math.floor(now.getMinutes() / minuteStep) * minuteStep);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialIso]);
+  }, [isOpen, initialIso, minuteStep, now]);
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<Element | null>(null);
   useEffect(() => {
     if (isOpen) {
       previouslyFocused.current = document.activeElement;
+      // focus dialog for keyboard users
       setTimeout(() => dialogRef.current?.focus(), 10);
     } else {
       (previouslyFocused.current as HTMLElement | null)?.focus?.();
@@ -103,13 +106,14 @@ export default function DateTimeDialog({
     const firstWeekday = startWeekday(year, monthIndex);
     const totalDays = daysInMonth(year, monthIndex);
     const out: (number | null)[][] = [];
-    const week: (number | null)[] = new Array(7).fill(null);
     let dayCounter = 1;
 
-    for (let i = firstWeekday; i < 7; i++) {
-      week[i] = dayCounter++;
+    // first week
+    const firstWeek: (number | null)[] = new Array(7).fill(null);
+    for (let i = firstWeekday; i < 7 && dayCounter <= totalDays; i++) {
+      firstWeek[i] = dayCounter++;
     }
-    out.push(week);
+    out.push(firstWeek);
 
     while (dayCounter <= totalDays) {
       const w: (number | null)[] = new Array(7).fill(null);
@@ -118,6 +122,7 @@ export default function DateTimeDialog({
       }
       out.push(w);
     }
+
     return out;
   }, [year, monthIndex]);
 
@@ -136,7 +141,7 @@ export default function DateTimeDialog({
     } else setMonthIndex(m => m + 1);
   }
 
-  function produceIsoUtc() {
+  function produceIsoUtc(): string {
     const local = new Date(year, monthIndex, day, hour, minute, 0, 0);
     return local.toISOString();
   }
@@ -161,35 +166,34 @@ export default function DateTimeDialog({
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="relative w-full max-w-2xl mx-auto bg-[#0b0b0c] border border-gray-800 rounded-lg shadow-2xl text-gray-100 p-4"
+        className="relative w-full max-w-lg mx-auto bg-[#0b0b0c] border border-gray-800 rounded-md shadow-lg text-gray-100 p-3 text-xs"
         aria-label={title}
       >
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-200 p-1">✕</button>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-200 p-1 text-xs">✕</button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <button onClick={prevMonth} className="px-2 py-1 rounded panel-transparent">‹</button>
-                <div className="text-sm font-medium">{monthLabels[monthIndex]} {year}</div>
-                <button onClick={nextMonth} className="px-2 py-1 rounded panel-transparent">›</button>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1">
+                <button onClick={prevMonth} className="px-2 py-0.5 rounded panel-transparent text-xs">‹</button>
+                <div className="text-xs font-medium">{monthLabels[monthIndex]} {year}</div>
+                <button onClick={nextMonth} className="px-2 py-0.5 rounded panel-transparent text-xs">›</button>
               </div>
-              <div className="text-xs text-gray-400">Local time</div>
+              <div className="text-[10px] text-gray-400">Local time</div>
             </div>
 
-            <div className="grid grid-cols-7 text-xs text-center gap-1">
+            <div className="grid grid-cols-7 text-[10px] text-center gap-0.5">
               {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                <div key={`wd-${i}`} className="text-[11px] text-gray-400 py-1">{d}</div>
+                <div key={`wd-${i}`} className="text-[10px] text-gray-400 py-1">{d}</div>
               ))}
             </div>
 
-            {/* Render each week as a row (each row gets a stable key) */}
-            <div className="mt-2 space-y-1">
+            <div className="mt-1 space-y-0.5">
               {weeks.map((week, wi) => (
-                <div key={`week-${year}-${monthIndex}-${wi}`} className="grid grid-cols-7 gap-1">
+                <div key={`week-${year}-${monthIndex}-${wi}`} className="grid grid-cols-7 gap-0.5">
                   {week.map((d, di) => {
                     const cellKey = d ? `day-${year}-${monthIndex}-${d}` : `empty-${year}-${monthIndex}-${wi}-${di}`;
                     const isSelected = d === day;
@@ -201,10 +205,7 @@ export default function DateTimeDialog({
                         key={cellKey}
                         onClick={() => d && setDay(d)}
                         disabled={!d}
-                        className={`py-2 rounded-md text-sm focus:outline-none ${d ? 'hover:bg-gray-800' : 'opacity-0'}
-                          ${isSelected ? 'bg-gray-700 ring-2 ring-gray-600' : ''}
-                          ${isToday && !isSelected ? 'border border-gray-700' : ''}
-                        `}
+                        className={`py-1 rounded-sm text-[11px] focus:outline-none ${d ? 'hover:bg-gray-800' : 'opacity-0'} ${isSelected ? 'bg-gray-700 ring-1 ring-gray-600' : ''} ${isToday && !isSelected ? 'border border-gray-700' : ''}`}
                         aria-pressed={isSelected}
                       >
                         <span className={`${isSelected ? 'font-semibold' : 'text-gray-200'}`}>{d ?? ''}</span>
@@ -216,50 +217,50 @@ export default function DateTimeDialog({
             </div>
           </div>
 
-          <div className="col-span-1 flex flex-col gap-3">
-            <div className="text-xs text-gray-400">Time</div>
+          <div className="col-span-1 flex flex-col gap-2 text-xs">
+            <div className="text-[10px] text-gray-400">Time</div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <div className="flex flex-col">
-                <label className="text-[11px] text-gray-400 mb-1">Hour</label>
+                <label className="text-[10px] text-gray-400 mb-0.5">Hour</label>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setHour(h => (h === 0 ? 23 : h - 1))} className="px-2 py-1 rounded panel-transparent" aria-label="Decrease hour">−</button>
-                  <div className="px-3 py-2 bg-gray-900 border border-gray-800 rounded text-sm w-16 text-center">{String(hour).padStart(2, '0')}</div>
-                  <button onClick={() => setHour(h => (h === 23 ? 0 : h + 1))} className="px-2 py-1 rounded panel-transparent" aria-label="Increase hour">+</button>
+                  <button onClick={() => setHour(h => (h === 0 ? 23 : h - 1))} className="px-2 py-0.5 rounded panel-transparent text-xs" aria-label="Decrease hour">−</button>
+                  <div className="px-2 py-1 bg-gray-900 border border-gray-800 rounded text-xs w-12 text-center">{String(hour).padStart(2, '0')}</div>
+                  <button onClick={() => setHour(h => (h === 23 ? 0 : h + 1))} className="px-2 py-0.5 rounded panel-transparent text-xs" aria-label="Increase hour">+</button>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <div className="flex flex-col">
-                <label className="text-[11px] text-gray-400 mb-1">Minute</label>
+                <label className="text-[10px] text-gray-400 mb-0.5">Minute</label>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setMinute(m => { const next = m - minuteStep; return next < 0 ? 60 - minuteStep : next; })} className="px-2 py-1 rounded panel-transparent" aria-label="Decrease minutes">−</button>
-                  <div className="px-3 py-2 bg-gray-900 border border-gray-800 rounded text-sm w-16 text-center">{String(minute).padStart(2, '0')}</div>
-                  <button onClick={() => setMinute(m => { const next = m + minuteStep; return next >= 60 ? 0 : next; })} className="px-2 py-1 rounded panel-transparent" aria-label="Increase minutes">+</button>
+                  <button onClick={() => setMinute(m => { const next = m - minuteStep; return next < 0 ? 60 - minuteStep : next; })} className="px-2 py-0.5 rounded panel-transparent text-xs" aria-label="Decrease minutes">−</button>
+                  <div className="px-2 py-1 bg-gray-900 border border-gray-800 rounded text-xs w-12 text-center">{String(minute).padStart(2, '0')}</div>
+                  <button onClick={() => setMinute(m => { const next = m + minuteStep; return next >= 60 ? 0 : next; })} className="px-2 py-0.5 rounded panel-transparent text-xs" aria-label="Increase minutes">+</button>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-2 items-center">
-              <button onClick={() => setMinute(0)} className="px-2 py-1 text-xs rounded panel-transparent">:00</button>
-              <button onClick={() => setMinute(15)} className="px-2 py-1 text-xs rounded panel-transparent">:15</button>
-              <button onClick={() => setMinute(30)} className="px-2 py-1 text-xs rounded panel-transparent">:30</button>
-              <button onClick={() => setMinute(45)} className="px-2 py-1 text-xs rounded panel-transparent">:45</button>
+            <div className="flex gap-1 items-center">
+              <button onClick={() => setMinute(0)} className="px-2 py-0.5 text-[10px] rounded panel-transparent">:00</button>
+              <button onClick={() => setMinute(15)} className="px-2 py-0.5 text-[10px] rounded panel-transparent">:15</button>
+              <button onClick={() => setMinute(30)} className="px-2 py-0.5 text-[10px] rounded panel-transparent">:30</button>
+              <button onClick={() => setMinute(45)} className="px-2 py-0.5 text-[10px] rounded panel-transparent">:45</button>
             </div>
 
-            <div className="mt-2 text-[12px] text-gray-400">
-              Selected: <span className="font-medium">{`${String(day).padStart(2, '0')} ${monthLabels[monthIndex]} ${year} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`}</span>
+            <div className="mt-1 text-[11px] text-gray-400">
+              <span className="font-medium">{`${String(day).padStart(2, '0')} ${monthLabels[monthIndex]} ${year} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 mt-4">
-          <button onClick={onClose} className="px-3 py-2 rounded text-sm panel-transparent">Cancel</button>
+        <div className="flex items-center justify-end gap-2 mt-3">
+          <button onClick={onClose} className="px-3 py-1 rounded text-xs panel-transparent">Cancel</button>
           <button
             onClick={() => onConfirm(produceIsoUtc())}
             disabled={isPast}
-            className={`px-4 py-2 rounded text-sm ${isPast ? 'opacity-50 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'}`}
+            className={`px-3 py-1 rounded text-xs ${isPast ? 'opacity-50 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'}`}
           >
             Confirm
           </button>
