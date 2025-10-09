@@ -122,52 +122,6 @@ NEXT_PUBLIC_API_URL=http://localhost:4000
 -------------------------------------------------------------------
 
 
-🚀  Production ..
-
-
-Next frontned ----------->
-
-
-Build command: npm i && npm run build
-Start command: npm start
-NEXT_PUBLIC_API_URL:https:/<your_api_url>.com     --- the deployed frontend url
-
-
-
-
-Node backend ----------->
-
-
-# Server
-PORT=4000
-FRONTEND_ORIGIN=https://noted-frontend.example.com
-BACKEND_ORIGIN=https://noted-backend.example.com
-
-# MongoDB (Cloud Atlas)
-MONGO_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/Noted?retryWrites=true&w=majority
-
-# JWT & Session
-JWT_SECRET=${{ secrets.JWT_SECRET }}
-SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-
-   .
-   .
-   .
-   .
-
-# Google OAuth
-GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-
-
-
-
-Start command: npm start (use render or vercel for easy backend hosting)
-Build command: npm i && npm run build
-
-        < note: use the hosted backend and frontend value for the environmentvariable setup for frontend origin, backend origin
-              redis and the deployed uri for google auth add the javascript origin and redirect uris  >
-
 
 
 📝 Developed
